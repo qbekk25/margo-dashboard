@@ -22,12 +22,13 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Ikony SVG
 const IconMoney = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>;
 const IconMap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 const IconTarget = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
 const IconTrend = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 const IconTerminal = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>;
+const IconSun = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
+const IconMoon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
 
 function StatCard({ icon, label, value, sub, color }) {
   return (
@@ -47,9 +48,15 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY)) || []; } catch { return []; }
   });
   const [sessionId, setSessionId] = useState('');
-  
-  // Zegar do odświeżania alertów co sekundę
   const [now, setNow] = useState(Date.now());
+  
+  // Stan motywu
+  const [theme, setTheme] = useState(() => localStorage.getItem('margo_theme') || 'dark');
+
+  useEffect(() => {
+    document.body.className = theme === 'light' ? 'light-mode' : '';
+    localStorage.setItem('margo_theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -118,29 +125,33 @@ export default function App() {
     datasets: [{
       label: 'Kapitał',
       data: snapshots.map(s => s.money ?? 0),
-      borderColor: '#00e5ff',
+      borderColor: theme === 'light' ? '#0284c7' : '#00e5ff',
       backgroundColor: (ctx) => {
         const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 260);
-        g.addColorStop(0, 'rgba(0,229,255,0.2)');
-        g.addColorStop(1, 'rgba(0,229,255,0)');
+        g.addColorStop(0, theme === 'light' ? 'rgba(2,132,199,0.2)' : 'rgba(0,229,255,0.2)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
         return g;
       },
       tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2, fill: true
     }]
-  }), [snapshots]);
+  }), [snapshots, theme]);
 
   const chartOpts = {
     responsive: true, maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgba(10,12,18,0.95)', borderColor: '#00e5ff', borderWidth: 1,
-        titleColor: '#fff', bodyColor: '#00e5ff', callbacks: { label: (ctx) => ` ${fmt(ctx.parsed.y)}` }
+        backgroundColor: theme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(10,12,18,0.95)',
+        borderColor: theme === 'light' ? '#e2e8f0' : '#00e5ff',
+        borderWidth: 1,
+        titleColor: theme === 'light' ? '#0f172a' : '#fff',
+        bodyColor: theme === 'light' ? '#0284c7' : '#00e5ff',
+        callbacks: { label: (ctx) => ` ${fmt(ctx.parsed.y)}` }
       }
     },
     scales: {
-      x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#666', maxTicksLimit: 6 } },
-      y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#666', callback: v => fmt(v) } }
+      x: { grid: { color: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.03)' }, ticks: { color: theme === 'light' ? '#64748b' : '#666', maxTicksLimit: 6 } },
+      y: { grid: { color: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.03)' }, ticks: { color: theme === 'light' ? '#64748b' : '#666', callback: v => fmt(v) } }
     }
   };
 
@@ -151,10 +162,9 @@ export default function App() {
     return state.hero.money - start;
   }, [snapshots, state]);
 
-  // --- SYSTEM ALERTÓW ---
   const isDead = state?.hero?.hp <= 0 || state?.bot?.status?.includes('NIEPRZYTOMNA') || state?.bot?.status?.includes('ODRADZANIE');
-  const isStuck = !isDead && state?.bot?.running && state?.hero?.lastMoveTs && (now - state.hero.lastMoveTs > 60000); // 1 minuta bez ruchu
-  const isLagging = !isDead && state?.bot?.running && state?.ts && (now - state.ts > 130000); // Brak jakiegokolwiek sygnału przez 2m 10s
+  const isStuck = !isDead && state?.bot?.running && state?.hero?.lastMoveTs && (now - state.hero.lastMoveTs > 60000);
+  const isLagging = !isDead && state?.bot?.running && state?.ts && (now - state.ts > 130000);
 
   if (!sessionId || !state) {
     return (
@@ -180,6 +190,11 @@ export default function App() {
         </div>
 
         <div className="top-right">
+          {/* PRZEŁĄCZNIK MOTYWU */}
+          <button className="btn btn-outline theme-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title="Zmień motyw">
+            {theme === 'dark' ? <IconSun /> : <IconMoon />}
+          </button>
+
           <div className="account-switcher">
             <select value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="ae-select">
               {sessions.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
@@ -194,22 +209,9 @@ export default function App() {
         </div>
       </header>
 
-      {/* PASEK ALERTÓW */}
-      {isDead && (
-        <div className="death-alert">
-          WYKRYTO ZGON POSTACI // OCZEKIWANIE NA RESPAWN W MIEŚCIE
-        </div>
-      )}
-      {isLagging && (
-        <div className="lag-alert">
-          BRAK POŁĄCZENIA Z KLIENTEM GRY // ZALECANE ODŚWIEŻENIE STRONY (F5)
-        </div>
-      )}
-      {!isLagging && isStuck && (
-        <div className="stuck-alert">
-          WYKRYTO ZABLOKOWANIE POSTACI // POSTAĆ NIE RUSZYŁA SIĘ OD PONAD MINUTĘ
-        </div>
-      )}
+      {isDead && <div className="death-alert">WYKRYTO ZGON POSTACI // OCZEKIWANIE NA RESPAWN W MIEŚCIE</div>}
+      {isLagging && <div className="lag-alert">BRAK POŁĄCZENIA Z KLIENTEM GRY // ZALECANE ODŚWIEŻENIE STRONY (F5)</div>}
+      {!isLagging && isStuck && <div className="stuck-alert">WYKRYTO ZABLOKOWANIE POSTACI // POSTAĆ NIE RUSZYŁA SIĘ OD PONAD MINUTĘ</div>}
 
       <div className="main-grid">
         <aside className="col-left">
@@ -242,10 +244,10 @@ export default function App() {
           </section>
 
           <div className="stats-grid">
-            <StatCard icon={<IconMoney />} label="KAPITAŁ" value={fmt(state.hero.money)} color="#00e5ff" />
-            <StatCard icon={<IconTrend />} label="ZYSK SESJI" value={profit != null ? (profit >= 0 ? '+' : '') + fmt(profit) : '---'} color={profit >= 0 ? '#00ff88' : '#ff3366'} />
-            <StatCard icon={<IconMap />} label="LOKALIZACJA" value={state.map || '---'} color="#a855f7" />
-            <StatCard icon={<IconTarget />} label="AKTYWNY CEL" value={state.target || '---'} color="#ff3366" />
+            <StatCard icon={<IconMoney />} label="KAPITAŁ" value={fmt(state.hero.money)} color={theme === 'light' ? '#0284c7' : '#00e5ff'} />
+            <StatCard icon={<IconTrend />} label="ZYSK SESJI" value={profit != null ? (profit >= 0 ? '+' : '') + fmt(profit) : '---'} color={profit >= 0 ? (theme === 'light' ? '#10b981' : '#00ff88') : (theme === 'light' ? '#ef4444' : '#ff3366')} />
+            <StatCard icon={<IconMap />} label="LOKALIZACJA" value={state.map || '---'} color={theme === 'light' ? '#8b5cf6' : '#a855f7'} />
+            <StatCard icon={<IconTarget />} label="AKTYWNY CEL" value={state.target || '---'} color={theme === 'light' ? '#ef4444' : '#ff3366'} />
           </div>
 
           <section className="card controls-card">
@@ -266,7 +268,7 @@ export default function App() {
               <span>RADAR LOKALNY</span>
               <span className="badge mono">{state.hero.x} : {state.hero.y}</span>
             </div>
-            <MapView state={state} />
+            <MapView state={state} theme={theme} />
           </section>
 
           <section className="card chart-card">
@@ -296,7 +298,7 @@ export default function App() {
                 {logs.length === 0 ? <div className="empty">Brak logów</div> : logs.map((l, i) => (
                   <div key={i} className="log-row">
                     <span className="log-time">{l.time}</span>
-                    <span className="log-msg">{l.msg}</span>
+                    <span className="log-msg" style={{ color: l.color }}>{l.msg}</span>
                   </div>
                 ))}
               </div>
