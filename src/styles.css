@@ -104,7 +104,7 @@ body {
 /* ═══ Main grid ═══ */
 .main-grid {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 360px minmax(0, 1fr); /* minmax(0, 1fr) naprawia nachodzenie */
   gap: 16px;
   align-items: start;
 }
@@ -124,6 +124,7 @@ body {
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
   transition: border-color 0.2s;
+  min-width: 0;
 }
 .card:hover { border-color: var(--card-hover); }
 
@@ -187,14 +188,15 @@ body {
   box-shadow: 0 0 12px currentColor;
 }
 
-/* ═══ Stats grid ═══ */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* ═══ Stats grid (ZMIENIONO NA 1 KOLUMNĘ) ═══ */
+.stats-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .stat-card {
   background: var(--card); border: 1px solid var(--card-border);
   border-radius: var(--radius); padding: 14px;
   display: flex; gap: 12px; align-items: center;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   transition: transform 0.2s, border-color 0.2s;
+  min-width: 0;
 }
 .stat-card:hover { transform: translateY(-2px); border-color: var(--card-hover); }
 .stat-icon { font-size: 26px; }
@@ -216,22 +218,15 @@ body {
 
 /* ═══ Route progress ═══ */
 .route-progress { display: flex; flex-direction: column; gap: 8px; }
-.route-current {
-  font-size: 13px; font-weight: 700; color: var(--cyan);
-}
-.route-bar {
-  height: 6px; background: rgba(0,0,0,0.6);
-  border-radius: 4px; overflow: hidden;
-}
+.route-current { font-size: 13px; font-weight: 700; color: var(--cyan); }
+.route-bar { height: 6px; background: rgba(0,0,0,0.6); border-radius: 4px; overflow: hidden; }
 .route-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--green), var(--cyan));
   transition: width 0.5s ease;
   box-shadow: 0 0 12px rgba(0,255,127,0.5);
 }
-.route-next {
-  font-size: 11px; color: var(--text-dim);
-}
+.route-next { font-size: 11px; color: var(--text-dim); }
 
 /* ═══ Controls ═══ */
 .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -268,12 +263,14 @@ body {
 .map-wrap {
   display: flex; flex-direction: column; gap: 12px;
   align-items: center;
+  width: 100%; /* Pozwala mapie dynamicznie się skalować */
 }
 .map-canvas {
   border-radius: 10px;
   display: block;
   box-shadow: 0 0 40px rgba(255,140,60,0.08), inset 0 0 40px rgba(0,0,0,0.6);
   border: 1px solid rgba(255,140,60,0.15);
+  max-width: 100%;
 }
 .map-legend {
   display: flex; flex-wrap: wrap; gap: 14px;
@@ -281,10 +278,7 @@ body {
   justify-content: center;
 }
 .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.map-legend .dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  display: inline-block;
-}
+.map-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .dot.hero { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .dot.mob { background: var(--red); }
 .dot.elite1 { background: #f97316; }
@@ -302,71 +296,44 @@ body {
 }
 
 /* ═══ Bottom row ═══ */
-.bottom-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-@media (max-width: 640px) {
-  .bottom-row { grid-template-columns: 1fr; }
-}
+.bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .bottom-row { grid-template-columns: 1fr; } }
 
 .players-list, .logs-list {
   max-height: 220px; overflow-y: auto;
   display: flex; flex-direction: column; gap: 4px;
 }
-.players-list::-webkit-scrollbar,
-.logs-list::-webkit-scrollbar { width: 6px; }
-.players-list::-webkit-scrollbar-thumb,
-.logs-list::-webkit-scrollbar-thumb {
-  background: var(--card-border); border-radius: 3px;
-}
+.players-list::-webkit-scrollbar, .logs-list::-webkit-scrollbar { width: 6px; }
+.players-list::-webkit-scrollbar-thumb, .logs-list::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 3px; }
 
 .player-row {
-  display: grid;
-  grid-template-columns: 12px 1fr auto;
+  display: grid; grid-template-columns: 12px 1fr auto;
   gap: 10px; align-items: center;
   padding: 8px 10px;
   background: rgba(0,0,0,0.3);
   border-radius: 6px;
   font-size: 12px;
 }
-.player-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
-}
+.player-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
 .player-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player-lvl { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
 
 .log-row {
-  display: grid;
-  grid-template-columns: 60px 1fr;
+  display: grid; grid-template-columns: 60px 1fr;
   gap: 8px; align-items: start;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  border-left: 2px solid transparent;
-  transition: 0.15s;
+  padding: 6px 8px; border-radius: 6px;
+  font-size: 11px; border-left: 2px solid transparent; transition: 0.15s;
 }
 .log-row:hover { background: rgba(255,255,255,0.03); }
-.log-time {
-  color: var(--text-faint);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-}
+.log-time { color: var(--text-faint); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
 .log-msg { font-weight: 500; line-height: 1.4; }
 
 /* ═══ Battle banner ═══ */
 .battle-banner {
   background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(251,191,36,0.15));
-  border: 1px solid rgba(239,68,68,0.4);
-  border-radius: var(--radius);
-  padding: 12px 18px;
-  text-align: center;
-  font-weight: 800; letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.4); border-radius: var(--radius);
+  padding: 12px 18px; text-align: center; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase; color: #fca5a5;
   animation: battle-pulse 1.2s ease-in-out infinite;
 }
 @keyframes battle-pulse {
@@ -379,7 +346,5 @@ body {
   .app { padding: 12px; }
   .top-bar { flex-direction: column; gap: 12px; align-items: stretch; }
   .top-right { justify-content: space-between; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .controls-grid { grid-template-columns: 1fr 1fr; }
   .map-canvas { width: 100% !important; height: auto !important; }
 }
