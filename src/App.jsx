@@ -66,7 +66,6 @@ export default function App() {
 
   const { state, snapshots, logs } = useTelemetry(sessionId);
 
-  // Presence – informuje Tampermonkey że dashboard jest otwarty
   useEffect(() => {
     if (!sessionId) return;
     const write = () => {
@@ -125,7 +124,6 @@ export default function App() {
     }
   };
 
-  // Statystyki pochodne
   const profit = useMemo(() => {
     if (!snapshots.length || !state?.hero?.money) return null;
     const start = snapshots[0]?.money;
@@ -156,12 +154,10 @@ export default function App() {
     );
   }
 
-  const hpPct = state.hero.maxhp ? (state.hero.hp / state.hero.maxhp) * 100 : 0;
   const heroName = state.hero.name || 'Bohater';
 
   return (
     <div className="app">
-      {/* ═══════ HEADER ═══════ */}
       <header className="top-bar">
         <div className="brand">
           <span className="brand-icon">⚔️</span>
@@ -181,12 +177,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* ═══════ GŁÓWNY GRID ═══════ */}
       <div className="main-grid">
-
-        {/* ── LEWA KOLUMNA ── */}
         <aside className="col-left">
-          {/* Hero Card */}
           <section className="card hero-card">
             <div className="hero-avatar">🧙</div>
             <div className="hero-info">
@@ -208,7 +200,6 @@ export default function App() {
             </div>
           </section>
 
-          {/* Statystyki */}
           <div className="stats-grid">
             <StatCard icon="💰" label="Pieniądze" value={fmt(state.hero.money)} color="#fbbf24" />
             <StatCard
@@ -220,7 +211,6 @@ export default function App() {
             <StatCard icon="🎯" label="Cel" value={state.target || '—'} color="#a855f7" />
           </div>
 
-          {/* Trasa */}
           <section className="card">
             <div className="card-header">
               <span>🧭 Trasa</span>
@@ -243,7 +233,6 @@ export default function App() {
             </div>
           </section>
 
-          {/* Kontrola */}
           <section className="card controls-card">
             <div className="card-header">🎮 Sterowanie</div>
             <div className="controls-grid">
@@ -256,9 +245,7 @@ export default function App() {
           </section>
         </aside>
 
-        {/* ── PRAWA KOLUMNA ── */}
         <main className="col-right">
-          {/* Mapa */}
           <section className="card map-card">
             <div className="card-header">
               <span>🗺️ Otoczenie — {state.map}</span>
@@ -267,7 +254,6 @@ export default function App() {
             <MapView state={state} />
           </section>
 
-          {/* Wykres */}
           <section className="card chart-card">
             <div className="card-header">
               <span>💰 Zarobki w czasie</span>
@@ -277,12 +263,11 @@ export default function App() {
             </div>
             <div className="chart-wrap">
               {snapshots.length === 0
-                ? <div className="empty">Zbiera dane… pierwsze punkty po ~60 s</div>
+                ? <div className="empty">Zbiera dane… pierwsze punkty po 5 min</div>
                 : <Line data={chartData} options={chartOpts} />}
             </div>
           </section>
 
-          {/* Dolny rząd: gracze + logi */}
           <div className="bottom-row">
             <section className="card">
               <div className="card-header">
@@ -320,7 +305,6 @@ export default function App() {
             </section>
           </div>
 
-          {/* Status walki */}
           {state.battle?.active && (
             <div className="battle-banner">
               ⚔️ Walka — runda {state.battle.round || 0}
