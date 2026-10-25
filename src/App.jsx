@@ -15,12 +15,20 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const SESSIONS_STORAGE_KEY = 'margo_dashboard_sessions';
 
 function fmt(n) {
-  if (n == null) return '—';
+  if (n == null) return '---';
   return Number(n).toLocaleString('pl-PL');
 }
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
+
+// Czyste ikony SVG zamiast emotek
+const IconMoney = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>;
+const IconMap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+const IconTarget = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+const IconTrend = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+const IconUsers = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const IconTerminal = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>;
 
 function StatCard({ icon, label, value, sub, color }) {
   return (
@@ -35,56 +43,22 @@ function StatCard({ icon, label, value, sub, color }) {
   );
 }
 
-function ProgressBar({ value, max, color = '#ef4444', label }) {
-  const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
-  return (
-    <div className="bar-wrap">
-      <div className="bar-labels">
-        <span>{label}</span>
-        <span>{fmt(value)} / {fmt(max)}</span>
-      </div>
-      <div className="bar-track">
-        <div className="bar-fill" style={{
-          width: pct + '%',
-          background: `linear-gradient(90deg, ${color}, ${color}dd)`
-        }} />
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
-  // Przechowujemy listę zapisanych sesji: [{ id: 'sess_...', label: 'Nazwa konta' }]
   const [sessions, setSessions] = useState(() => {
     try { return JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY)) || []; } catch { return []; }
   });
   const [sessionId, setSessionId] = useState('');
 
-  // Inicjalizacja pierwszej sesji
   useEffect(() => {
-    if (sessions.length > 0 && !sessionId) {
-      setSessionId(sessions[0].id);
-    } else if (sessions.length === 0 && !sessionId) {
-      // Jeśli nie ma zapisanych, zapytaj o pierwszy sessionId
-      const id = prompt('Podaj sessionId z konsoli gry (np. sess_...):');
-      if (id) {
-        const newSession = { id, label: 'Konto 1' };
-        setSessions([newSession]);
-        setSessionId(id);
-      }
-    }
+    if (sessions.length > 0 && !sessionId) setSessionId(sessions[0].id);
   }, [sessions, sessionId]);
 
-  // Zapis sesji do localStorage
   useEffect(() => {
-    if (sessions.length > 0) {
-      localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
-    }
+    if (sessions.length > 0) localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
   }, [sessions]);
 
   const { state, snapshots, logs } = useTelemetry(sessionId);
 
-  // Automatyczna aktualizacja nazwy konta w liście (gdy dowiemy się jak nazywa się postać)
   useEffect(() => {
     if (state?.hero?.name && sessionId) {
       setSessions(prev => {
@@ -99,13 +73,10 @@ export default function App() {
     }
   }, [state?.hero?.name, sessionId]);
 
-  // Obecność (presence)
   useEffect(() => {
     if (!sessionId) return;
     const write = () => {
-      if (document.visibilityState === 'visible') {
-        setDoc(doc(db, 'presence', sessionId), { ts: Date.now() }, { merge: true }).catch(() => {});
-      }
+      if (document.visibilityState === 'visible') setDoc(doc(db, 'presence', sessionId), { ts: Date.now() }, { merge: true }).catch(() => {});
     };
     write();
     const int = setInterval(write, 20000);
@@ -119,7 +90,7 @@ export default function App() {
   const addNewSession = () => {
     const id = prompt('Podaj nowy sessionId z konsoli gry:');
     if (id && !sessions.some(s => s.id === id)) {
-      const newSession = { id, label: 'Nowe konto...' };
+      const newSession = { id, label: 'Inicjalizacja...' };
       setSessions(prev => [...prev, newSession]);
       setSessionId(id);
     }
@@ -127,12 +98,10 @@ export default function App() {
 
   const removeSession = (idToRemove, e) => {
     e.stopPropagation();
-    if (!window.confirm('Usunąć to konto z listy?')) return;
+    if (!window.confirm('Usunąć to konto?')) return;
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== idToRemove);
-      if (sessionId === idToRemove) {
-        setSessionId(filtered.length > 0 ? filtered[0].id : '');
-      }
+      if (sessionId === idToRemove) setSessionId(filtered.length > 0 ? filtered[0].id : '');
       return filtered;
     });
   };
@@ -140,39 +109,30 @@ export default function App() {
   const chartData = useMemo(() => ({
     labels: snapshots.map(s => fmtTime(s.ts)),
     datasets: [{
-      label: 'Pieniądze',
+      label: 'Kapitał',
       data: snapshots.map(s => s.money ?? 0),
-      borderColor: '#fbbf24',
+      borderColor: '#00e5ff',
       backgroundColor: (ctx) => {
         const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 260);
-        g.addColorStop(0, 'rgba(251,191,36,0.35)');
-        g.addColorStop(1, 'rgba(251,191,36,0)');
+        g.addColorStop(0, 'rgba(0,229,255,0.2)');
+        g.addColorStop(1, 'rgba(0,229,255,0)');
         return g;
       },
-      tension: 0.35,
-      pointRadius: 0,
-      pointHoverRadius: 4,
-      borderWidth: 2,
-      fill: true
+      tension: 0.4, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2, fill: true
     }]
   }), [snapshots]);
 
   const chartOpts = {
-    responsive: true,
-    maintainAspectRatio: false,
+    responsive: true, maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgba(20,15,12,0.95)',
-        borderColor: '#6e2912',
-        borderWidth: 1,
-        titleColor: '#fbbf24',
-        bodyColor: '#f3e8e2',
-        callbacks: { label: (ctx) => ` 💰 ${fmt(ctx.parsed.y)}` }
+        backgroundColor: 'rgba(10,12,18,0.95)', borderColor: '#00e5ff', borderWidth: 1,
+        titleColor: '#fff', bodyColor: '#00e5ff', callbacks: { label: (ctx) => ` ${fmt(ctx.parsed.y)}` }
       }
     },
     scales: {
-      x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#666', maxTicksLimit: 8 } },
+      x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#666', maxTicksLimit: 6 } },
       y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#666', callback: v => fmt(v) } }
     }
   };
@@ -184,140 +144,96 @@ export default function App() {
     return state.hero.money - start;
   }, [snapshots, state]);
 
-  const profitPerHour = useMemo(() => {
-    if (snapshots.length < 2 || profit == null) return null;
-    const hours = (snapshots[snapshots.length - 1].ts - snapshots[0].ts) / 3600000;
-    if (hours <= 0.02) return null;
-    return Math.round(profit / hours);
-  }, [snapshots, profit]);
+  // Detekcja śmierci
+  const isDead = state?.hero?.hp <= 0 || state?.bot?.status?.includes('NIEPRZYTOMNA') || state?.bot?.status?.includes('ODRADZANIE');
 
-  if (!sessionId) {
-    return (
-      <div className="app">
-        <div className="loading-screen">
-          <h1>Margonem Dashboard</h1>
-          <p>Brak wybranej sesji.</p>
-          <button className="btn btn-start" onClick={addNewSession}>Dodaj konto</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!state) {
+  if (!sessionId || !state) {
     return (
       <div className="app">
         <div className="loading-screen">
           <div className="loading-orb" />
-          <h1>Margonem Dashboard</h1>
-          <p>Oczekiwanie na dane z gry… (sessionId: {sessionId})</p>
-          <button className="btn btn-secondary" onClick={addNewSession}>Dodaj nowe konto</button>
+          <h1>SYSTEM INICJALIZACJA</h1>
+          <p>Oczekiwanie na strumień danych...</p>
+          <button className="btn btn-primary" onClick={addNewSession}>Dodaj instancję</button>
         </div>
       </div>
     );
   }
-
-  const heroName = state.hero.name || 'Bohater';
 
   return (
     <div className="app">
       <header className="top-bar">
         <div className="brand">
-          <span className="brand-icon">⚔️</span>
-          <div>
-            <div className="brand-title">Margonem Dashboard</div>
-            <div className="brand-sub">Profil: <b>{state.bot?.currentProfile || '—'}</b></div>
-          </div>
+          <div className="brand-title">MARGONEM // TELEMETRY</div>
+          <div className="brand-sub">NODE: <b>{sessionId.split('_')[1] || 'UNKNOWN'}</b></div>
         </div>
 
         <div className="top-right">
-          {/* PRZEŁĄCZNIK KONT */}
           <div className="account-switcher">
-            <select 
-              value={sessionId} 
-              onChange={(e) => setSessionId(e.target.value)}
-              className="ae-select"
-              style={{ padding: '6px 12px', borderRadius: '8px', background: '#1a1310', color: '#fbbf24', border: '1px solid #3e1e14', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-            >
-              {sessions.map(s => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
+            <select value={sessionId} onChange={(e) => setSessionId(e.target.value)} className="ae-select">
+              {sessions.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <button className="btn btn-ghost" onClick={addNewSession} title="Dodaj nowe konto" style={{ padding: '6px 10px' }}>+</button>
-            {sessions.length > 1 && (
-              <button className="btn btn-ghost" onClick={(e) => removeSession(sessionId, e)} title="Usuń to konto z listy" style={{ padding: '6px 10px', color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>✕</button>
-            )}
+            <button className="btn btn-outline" onClick={addNewSession} title="Dodaj konto">+</button>
+            {sessions.length > 1 && <button className="btn btn-outline" onClick={(e) => removeSession(sessionId, e)} title="Usuń konto">-</button>}
           </div>
 
-          <span className={`status-pill ${state.bot?.running ? 'on' : 'off'}`}>
-            <i /> {state.bot?.running ? 'BOT AKTYWNY' : 'BOT ZATRZYMANY'}
+          <span className={`status-pill ${isDead ? 'dead' : state.bot?.running ? 'on' : 'off'}`}>
+            <i /> {isDead ? 'SYSTEM OFFLINE' : state.bot?.running ? 'SYSTEM ONLINE' : 'STANDBY'}
           </span>
         </div>
       </header>
 
+      {isDead && (
+        <div className="death-alert">
+          WYKRYTO ZGON POSTACI // OCZEKIWANIE NA RESPAWN W MIEŚCIE
+        </div>
+      )}
+
       <div className="main-grid">
         <aside className="col-left">
           <section className="card hero-card">
-            <div className="hero-avatar">🧙</div>
-            <div className="hero-info">
-              <div className="hero-name">{heroName}</div>
-              <div className="hero-meta">
-                <span>Lvl <b>{state.hero.lvl ?? '?'}</b></span>
-                <span>·</span>
-                <span className={state.hero.isBlessed ? 'bless-on' : 'bless-off'}>
-                  {state.hero.isBlessed ? '✨ Błogo' : '✗ Brak błogo'}
-                </span>
+            <div className="hero-header">
+              <div className="hero-avatar-box">{heroNameInitial(state.hero.name)}</div>
+              <div className="hero-info">
+                <div className="hero-name">{state.hero.name || 'NIEZNANY'}</div>
+                <div className="hero-meta">
+                  <span>LVL <b>{state.hero.lvl ?? '?'}</b></span>
+                  <span className={`bless ${state.hero.isBlessed ? 'on' : 'off'}`}>
+                    {state.hero.isBlessed ? 'BLESS ACTIVE' : 'NO BLESS'}
+                  </span>
+                </div>
               </div>
             </div>
 
             <div className="hero-bars">
-              <ProgressBar value={state.hero.hp ?? 0} max={state.hero.maxhp ?? 1} color="#ef4444" label="❤️ HP" />
+              <div className="bar-wrap">
+                <div className="bar-labels"><span>STRUKTURA ŻYCIA</span><span>{state.hero.hp} / {state.hero.maxhp}</span></div>
+                <div className="bar-track"><div className="bar-fill hp" style={{ width: `${(state.hero.hp / state.hero.maxhp) * 100}%` }} /></div>
+              </div>
               {state.hero.mp != null && (
-                <ProgressBar value={state.hero.mp} max={state.hero.maxmp ?? 1} color="#3b82f6" label="💧 MP" />
+                <div className="bar-wrap">
+                  <div className="bar-labels"><span>MANA</span><span>{state.hero.mp} / {state.hero.maxmp}</span></div>
+                  <div className="bar-track"><div className="bar-fill mp" style={{ width: `${(state.hero.mp / state.hero.maxmp) * 100}%` }} /></div>
+                </div>
               )}
             </div>
           </section>
 
           <div className="stats-grid">
-            <StatCard icon="💰" label="Pieniądze" value={fmt(state.hero.money)} color="#fbbf24" />
-            <StatCard
-              icon="📈" label="Zysk sesji"
-              value={profit != null ? (profit >= 0 ? '+' : '') + fmt(profit) : '—'}
-              sub={profitPerHour != null ? `≈ ${fmt(profitPerHour)}/h` : null}
-              color={profit != null && profit >= 0 ? '#00ff7f' : '#ef4444'} />
-            <StatCard icon="📍" label="Mapa" value={state.map || '—'} color="#22d3ee" />
-            <StatCard icon="🎯" label="Cel" value={state.target || '—'} color="#a855f7" />
+            <StatCard icon={<IconMoney />} label="KAPITAŁ" value={fmt(state.hero.money)} color="#00e5ff" />
+            <StatCard icon={<IconTrend />} label="ZYSK SESJI" value={profit != null ? (profit >= 0 ? '+' : '') + fmt(profit) : '---'} color={profit >= 0 ? '#00ff88' : '#ff3366'} />
+            <StatCard icon={<IconMap />} label="LOKALIZACJA" value={state.map || '---'} color="#a855f7" />
+            <StatCard icon={<IconTarget />} label="AKTYWNY CEL" value={state.target || '---'} color="#ff3366" />
           </div>
 
-          <section className="card">
-            <div className="card-header">
-              <span>🧭 Trasa</span>
-              <span className="badge">{state.bot?.route?.length || 0} map</span>
-            </div>
-            <div className="route-progress">
-              <div className="route-current">
-                {(state.bot?.currentRouteIdx ?? 0) + 1}. {state.bot?.route?.[state.bot?.currentRouteIdx] || '—'}
-              </div>
-              <div className="route-bar">
-                <div className="route-bar-fill" style={{
-                  width: state.bot?.route?.length
-                    ? `${((state.bot.currentRouteIdx + 1) / state.bot.route.length) * 100}%`
-                    : '0%'
-                }} />
-              </div>
-              <div className="route-next">
-                Następna: {state.bot?.route?.[(state.bot?.currentRouteIdx + 1) % Math.max(1, state.bot?.route?.length)] || '—'}
-              </div>
-            </div>
-          </section>
-
           <section className="card controls-card">
-            <div className="card-header">🎮 Sterowanie</div>
+            <div className="card-header"><span>KONSOLA STEROWANIA</span></div>
             <div className="controls-grid">
-              <button className="btn btn-start" onClick={() => sendCommand('start')}>▶ Start</button>
-              <button className="btn btn-stop" onClick={() => sendCommand('stop')}>⏹ Stop</button>
-              <button className="btn" onClick={() => sendCommand('skipMap')}>⏭ Nast. mapa</button>
-              <button className="btn" onClick={() => sendCommand('forceSell')}>💰 Sprzedaj</button>
-              <button className="btn btn-danger" onClick={() => sendCommand('reload')}>🔄 Odśwież grę</button>
+              <button className="btn btn-start" onClick={() => sendCommand('start')}>START</button>
+              <button className="btn btn-stop" onClick={() => sendCommand('stop')}>STOP</button>
+              <button className="btn" onClick={() => sendCommand('skipMap')}>NASTĘPNA MAPA</button>
+              <button className="btn" onClick={() => sendCommand('forceSell')}>SPRZEDAŻ</button>
+              <button className="btn btn-danger" onClick={() => sendCommand('reload')}>RESTART KLIENTA</button>
             </div>
           </section>
         </aside>
@@ -325,70 +241,51 @@ export default function App() {
         <main className="col-right">
           <section className="card map-card">
             <div className="card-header">
-              <span>🗺️ Otoczenie — {state.map}</span>
-              <span className="badge map-coords">({state.hero.x}, {state.hero.y})</span>
+              <span>RADAR LOKALNY</span>
+              <span className="badge mono">{state.hero.x} : {state.hero.y}</span>
             </div>
             <MapView state={state} />
           </section>
 
           <section className="card chart-card">
-            <div className="card-header">
-              <span>💰 Zarobki w czasie</span>
-              {profitPerHour != null && (
-                <span className="badge gold">{fmt(profitPerHour)}/h</span>
-              )}
-            </div>
+            <div className="card-header"><span>ANALIZA KAPITAŁU</span></div>
             <div className="chart-wrap">
-              {snapshots.length === 0
-                ? <div className="empty">Zbiera dane… pierwsze punkty po 5 min</div>
-                : <Line data={chartData} options={chartOpts} />}
+              {snapshots.length === 0 ? <div className="empty">Oczekiwanie na dane...</div> : <Line data={chartData} options={chartOpts} />}
             </div>
           </section>
 
           <div className="bottom-row">
             <section className="card">
-              <div className="card-header">
-                <span>👥 Gracze</span>
-                <span className="badge">{state.players?.length || 0}</span>
-              </div>
+              <div className="card-header"><span>PODMIOTY W ZASIĘGU</span><span className="badge">{state.players?.length || 0}</span></div>
               <div className="players-list">
-                {state.players?.length === 0
-                  ? <div className="empty">Brak innych graczy</div>
-                  : state.players.map(p => (
-                    <div key={p.id} className="player-row">
-                      <span className="player-dot" />
-                      <span className="player-name">{p.nick}</span>
-                      <span className="player-lvl">lvl {p.lvl ?? '?'}</span>
-                    </div>
-                  ))}
+                {state.players?.length === 0 ? <div className="empty">Brak innych graczy</div> : state.players.map(p => (
+                  <div key={p.id} className="player-row">
+                    <span className="player-dot" />
+                    <span className="player-name">{p.nick}</span>
+                    <span className="player-lvl">LVL {p.lvl ?? '?'}</span>
+                  </div>
+                ))}
               </div>
             </section>
 
             <section className="card logs-card">
-              <div className="card-header">
-                <span>📜 Logi</span>
-                <span className="badge">{logs.length}</span>
-              </div>
+              <div className="card-header"><span>LOG SYSTEMOWY</span><IconTerminal /></div>
               <div className="logs-list">
-                {logs.length === 0
-                  ? <div className="empty">Brak logów</div>
-                  : logs.map((l, i) => (
-                    <div key={i} className="log-row">
-                      <span className="log-time">{l.time}</span>
-                      <span className="log-msg" style={{ color: l.color }}>{l.msg}</span>
-                    </div>
-                  ))}
+                {logs.length === 0 ? <div className="empty">Brak logów</div> : logs.map((l, i) => (
+                  <div key={i} className="log-row">
+                    <span className="log-time">{l.time}</span>
+                    <span className="log-msg">{l.msg}</span>
+                  </div>
+                ))}
               </div>
             </section>
           </div>
-
-          {state.battle?.active && (
-            <div className="battle-banner">
-              ⚔️ Walka — runda {state.battle.round || 0}
-            </div>
-          )}
         </main>
       </div>
     </div>
   );
+}
+
+function heroNameInitial(name) {
+  return name ? name.substring(0, 2).toUpperCase() : '??';
 }
