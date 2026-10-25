@@ -12,7 +12,7 @@ import './styles.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-const SESSION_KEY = 'margo_dashboard_session_id';
+const SESSIONS_STORAGE_KEY = 'margo_dashboard_sessions';
 
 function fmt(n) {
   if (n == null) return '—';
@@ -54,18 +54,52 @@ function ProgressBar({ value, max, color = '#ef4444', label }) {
 }
 
 export default function App() {
-  const [sessionId, setSessionId] = useState(() => {
-    const saved = localStorage.getItem(SESSION_KEY);
-    if (saved) return saved;
-    return prompt('Podaj sessionId z konsoli gry (np. sess_abc123):') || '';
+  // Przechowujemy listę zapisanych sesji: [{ id: 'sess_...', label: 'Nazwa konta' }]
+  const [sessions, setSessions] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY)) || []; } catch { return []; }
   });
+  const [sessionId, setSessionId] = useState('');
 
+  // Inicjalizacja pierwszej sesji
   useEffect(() => {
-    if (sessionId) localStorage.setItem(SESSION_KEY, sessionId);
-  }, [sessionId]);
+    if (sessions.length > 0 && !sessionId) {
+      setSessionId(sessions[0].id);
+    } else if (sessions.length === 0 && !sessionId) {
+      // Jeśli nie ma zapisanych, zapytaj o pierwszy sessionId
+      const id = prompt('Podaj sessionId z konsoli gry (np. sess_...):');
+      if (id) {
+        const newSession = { id, label: 'Konto 1' };
+        setSessions([newSession]);
+        setSessionId(id);
+      }
+    }
+  }, [sessions, sessionId]);
+
+  // Zapis sesji do localStorage
+  useEffect(() => {
+    if (sessions.length > 0) {
+      localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+    }
+  }, [sessions]);
 
   const { state, snapshots, logs } = useTelemetry(sessionId);
 
+  // Automatyczna aktualizacja nazwy konta w liście (gdy dowiemy się jak nazywa się postać)
+  useEffect(() => {
+    if (state?.hero?.name && sessionId) {
+      setSessions(prev => {
+        const idx = prev.findIndex(s => s.id === sessionId);
+        if (idx >= 0 && prev[idx].label !== state.hero.name) {
+          const newSessions = [...prev];
+          newSessions[idx].label = state.hero.name;
+          return newSessions;
+        }
+        return prev;
+      });
+    }
+  }, [state?.hero?.name, sessionId]);
+
+  // Obecność (presence)
   useEffect(() => {
     if (!sessionId) return;
     const write = () => {
@@ -80,6 +114,27 @@ export default function App() {
 
   const sendCommand = async (cmd, extra = {}) => {
     await setDoc(doc(db, 'commands', sessionId), { cmd, ts: Date.now(), ...extra }, { merge: true });
+  };
+
+  const addNewSession = () => {
+    const id = prompt('Podaj nowy sessionId z konsoli gry:');
+    if (id && !sessions.some(s => s.id === id)) {
+      const newSession = { id, label: 'Nowe konto...' };
+      setSessions(prev => [...prev, newSession]);
+      setSessionId(id);
+    }
+  };
+
+  const removeSession = (idToRemove, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Usunąć to konto z listy?')) return;
+    setSessions(prev => {
+      const filtered = prev.filter(s => s.id !== idToRemove);
+      if (sessionId === idToRemove) {
+        setSessionId(filtered.length > 0 ? filtered[0].id : '');
+      }
+      return filtered;
+    });
   };
 
   const chartData = useMemo(() => ({
@@ -113,9 +168,7 @@ export default function App() {
         borderWidth: 1,
         titleColor: '#fbbf24',
         bodyColor: '#f3e8e2',
-        callbacks: {
-          label: (ctx) => ` 💰 ${fmt(ctx.parsed.y)}`
-        }
+        callbacks: { label: (ctx) => ` 💰 ${fmt(ctx.parsed.y)}` }
       }
     },
     scales: {
@@ -138,17 +191,26 @@ export default function App() {
     return Math.round(profit / hours);
   }, [snapshots, profit]);
 
+  if (!sessionId) {
+    return (
+      <div className="app">
+        <div className="loading-screen">
+          <h1>Margonem Dashboard</h1>
+          <p>Brak wybranej sesji.</p>
+          <button className="btn btn-start" onClick={addNewSession}>Dodaj konto</button>
+        </div>
+      </div>
+    );
+  }
+
   if (!state) {
     return (
       <div className="app">
         <div className="loading-screen">
           <div className="loading-orb" />
           <h1>Margonem Dashboard</h1>
-          <p>Oczekiwanie na dane z gry…</p>
-          <code className="session-code">{sessionId || '(brak)'}</code>
-          <button className="btn btn-secondary" onClick={() => { localStorage.removeItem(SESSION_KEY); location.reload(); }}>
-            Zmień sessionId
-          </button>
+          <p>Oczekiwanie na dane z gry… (sessionId: {sessionId})</p>
+          <button className="btn btn-secondary" onClick={addNewSession}>Dodaj nowe konto</button>
         </div>
       </div>
     );
@@ -168,12 +230,27 @@ export default function App() {
         </div>
 
         <div className="top-right">
+          {/* PRZEŁĄCZNIK KONT */}
+          <div className="account-switcher">
+            <select 
+              value={sessionId} 
+              onChange={(e) => setSessionId(e.target.value)}
+              className="ae-select"
+              style={{ padding: '6px 12px', borderRadius: '8px', background: '#1a1310', color: '#fbbf24', border: '1px solid #3e1e14', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {sessions.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+            <button className="btn btn-ghost" onClick={addNewSession} title="Dodaj nowe konto" style={{ padding: '6px 10px' }}>+</button>
+            {sessions.length > 1 && (
+              <button className="btn btn-ghost" onClick={(e) => removeSession(sessionId, e)} title="Usuń to konto z listy" style={{ padding: '6px 10px', color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}>✕</button>
+            )}
+          </div>
+
           <span className={`status-pill ${state.bot?.running ? 'on' : 'off'}`}>
             <i /> {state.bot?.running ? 'BOT AKTYWNY' : 'BOT ZATRZYMANY'}
           </span>
-          <button className="btn btn-ghost" onClick={() => { localStorage.removeItem(SESSION_KEY); location.reload(); }}>
-            Zmień sesję
-          </button>
         </div>
       </header>
 
