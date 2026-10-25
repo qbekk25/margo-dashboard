@@ -78,7 +78,7 @@ export function useTelemetry(sessionId) {
         setLogs(prev => [...newDocs.reverse(), ...prev].slice(0, 100));
         lastLogTsRef.current = Math.max(...newDocs.map(d => d.ts));
       }
-    }, 15000);
+    }, 4000);
 
     return () => {
       unsubState();
