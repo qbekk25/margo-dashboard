@@ -1,0 +1,20 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #0b0908; color: #f3e8e2; font-family: 'Poppins', sans-serif; }
+.app { max-width: 1100px; margin: 0 auto; padding: 20px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header h1 { margin: 0; font-size: 22px; color: #ffaa00; }
+.pill { padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+.pill.on { background: rgba(0,255,127,0.15); color: #00ff7f; border: 1px solid #00ff7f; }
+.pill.off { background: rgba(255,77,77,0.15); color: #ff4d4d; border: 1px solid #ff4d4d; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 14px; }
+.card { background: #141010; border: 1px solid #3e1e14; border-radius: 10px; padding: 14px; }
+.card h2 { margin: 0 0 10px; font-size: 13px; color: #fbbf24; text-transform: uppercase; }
+.card p { margin: 4px 0; font-size: 12px; }
+.row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px solid #222; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.controls button { background: #32160f; border: 1px solid #6e2912; color: #fff; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+.controls button:hover { border-color: #ff4500; }
+.chart-card { height: 320px; margin-bottom: 14px; }
+.logs { max-height: 260px; overflow-y: auto; }
+.log-row { display: flex; justify-content: space-between; padding: 4px 6px; border-bottom: 1px solid #1a1a1a; font-size: 11px; }
+.log-time { color: #666; }
