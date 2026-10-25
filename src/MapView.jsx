@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function MapView({ state }) {
+export default function MapView({ state, theme }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [size, setSize] = useState(500);
@@ -33,8 +33,10 @@ export default function MapView({ state }) {
     const heroX = state.hero.x;
     const heroY = state.hero.y;
 
-    // Tło (bardzo ciemny granat)
-    ctx.fillStyle = '#05070a';
+    const isLight = theme === 'light';
+
+    // Tło
+    ctx.fillStyle = isLight ? '#f8fafc' : '#05070a';
     ctx.fillRect(0, 0, cssSize, cssSize);
 
     for (let i = 0; i < walls.data.length; i++) {
@@ -47,21 +49,21 @@ export default function MapView({ state }) {
       const dx = (col - radius) / radius;
       const dy = (row - radius) / radius;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const fogAlpha = Math.max(0.2, 1 - dist * 0.8);
+      const fogAlpha = Math.max(isLight ? 0.4 : 0.2, 1 - dist * 0.8);
 
       ctx.globalAlpha = fogAlpha;
       if (isWall) {
-        ctx.fillStyle = '#141c2b'; // Ciemny niebieski sciany
+        ctx.fillStyle = isLight ? '#cbd5e1' : '#141c2b'; 
         ctx.fillRect(x, y, tileSize + 0.5, tileSize + 0.5);
       } else {
-        ctx.fillStyle = '#080b12'; // Jeszcze ciemniejsza podłoga
+        ctx.fillStyle = isLight ? '#e2e8f0' : '#080b12'; 
         ctx.fillRect(x, y, tileSize + 0.5, tileSize + 0.5);
       }
     }
     ctx.globalAlpha = 1;
 
     // Siatka
-    ctx.strokeStyle = 'rgba(0, 229, 255, 0.03)'; // Cyjanowa siatka
+    ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 229, 255, 0.03)';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= walls.size; i++) {
       const p = i * tileSize;
@@ -69,7 +71,7 @@ export default function MapView({ state }) {
       ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(cssSize, p); ctx.stroke();
     }
 
-    // Bramy (Fioletowe romby)
+    // Bramy
     (state.gateways || []).forEach(gw => {
       const relX = gw.x - heroX + radius;
       const relY = gw.y - heroY + radius;
@@ -77,9 +79,9 @@ export default function MapView({ state }) {
       const cx = relX * tileSize + tileSize / 2;
       const cy = relY * tileSize + tileSize / 2;
 
-      ctx.shadowColor = '#a855f7';
+      ctx.shadowColor = isLight ? '#8b5cf6' : '#a855f7';
       ctx.shadowBlur = 10;
-      ctx.fillStyle = '#a855f7';
+      ctx.fillStyle = isLight ? '#8b5cf6' : '#a855f7';
       ctx.beginPath();
       ctx.moveTo(cx, cy - tileSize * 0.4);
       ctx.lineTo(cx + tileSize * 0.4, cy);
@@ -90,7 +92,7 @@ export default function MapView({ state }) {
       ctx.shadowBlur = 0;
     });
 
-    // NPC (Czerwone i Różowe kropki)
+    // NPC
     (state.npcs || []).forEach(npc => {
       const relX = npc.x - heroX + radius;
       const relY = npc.y - heroY + radius;
@@ -99,9 +101,9 @@ export default function MapView({ state }) {
       const cy = relY * tileSize + tileSize / 2;
       const r = tileSize * 0.3;
 
-      let color = '#ff3366'; // Zwykłe
-      if (npc.wt >= 20) color = '#e879f9'; // Elita 2
-      else if (npc.wt >= 10) color = '#fca5a5'; // Elita 1
+      let color = isLight ? '#ef4444' : '#ff3366';
+      if (npc.wt >= 20) color = isLight ? '#d946ef' : '#e879f9';
+      else if (npc.wt >= 10) color = isLight ? '#f87171' : '#fca5a5';
 
       ctx.shadowColor = color;
       ctx.shadowBlur = 5;
@@ -112,7 +114,7 @@ export default function MapView({ state }) {
       ctx.shadowBlur = 0;
     });
 
-    // Gracze (Żółte kwadraty)
+    // Gracze
     (state.players || []).forEach(p => {
       if (p.x == null || p.y == null) return;
       const relX = p.x - heroX + radius;
@@ -121,28 +123,28 @@ export default function MapView({ state }) {
       const cx = relX * tileSize + tileSize / 2;
       const cy = relY * tileSize + tileSize / 2;
       
-      ctx.shadowColor = '#fbbf24';
+      ctx.shadowColor = isLight ? '#f59e0b' : '#fbbf24';
       ctx.shadowBlur = 8;
-      ctx.fillStyle = '#fbbf24';
+      ctx.fillStyle = isLight ? '#f59e0b' : '#fbbf24';
       ctx.fillRect(cx - tileSize*0.3, cy - tileSize*0.3, tileSize*0.6, tileSize*0.6);
       ctx.shadowBlur = 0;
     });
 
-    // Bohater (Neonowy zielony okrąg)
+    // Bohater
     const heroCx = radius * tileSize + tileSize / 2;
     const heroCy = radius * tileSize + tileSize / 2;
 
     const grad = ctx.createRadialGradient(heroCx, heroCy, 0, heroCx, heroCy, tileSize * 2);
-    grad.addColorStop(0, 'rgba(0, 255, 136, 0.4)');
-    grad.addColorStop(1, 'rgba(0, 255, 136, 0)');
+    grad.addColorStop(0, isLight ? 'rgba(16, 185, 129, 0.3)' : 'rgba(0, 255, 136, 0.4)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grad;
     ctx.fillRect(heroCx - tileSize * 2, heroCy - tileSize * 2, tileSize * 4, tileSize * 4);
 
-    ctx.fillStyle = '#00ff88';
+    ctx.fillStyle = isLight ? '#10b981' : '#00ff88';
     ctx.beginPath();
     ctx.arc(heroCx, heroCy, tileSize * 0.4, 0, Math.PI * 2);
     ctx.fill();
-  }, [state, size]);
+  }, [state, size, theme]);
 
   return (
     <div className="map-wrap" ref={containerRef}>
