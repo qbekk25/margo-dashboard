@@ -30,12 +30,19 @@ const IconTerminal = () => <svg width="20" height="20" viewBox="0 0 24 24" fill=
 const IconSun = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
 const IconMoon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
 
-function StatCard({ icon, label, value, sub, color }) {
+function StatCard({ icon, label, value, sub, color, onReset }) {
   return (
     <div className="stat-card">
       <div className="stat-icon" style={{ color }}>{icon}</div>
       <div className="stat-body">
-        <div className="stat-label">{label}</div>
+        <div className="stat-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {label}
+          {onReset && (
+            <span onClick={onReset} style={{ cursor: 'pointer', color: 'var(--text-dim)', fontSize: '9px', border: '1px solid var(--border)', padding: '2px 4px', borderRadius: '4px' }} title="Ustaw obecny stan jako punkt startowy dla zysku">
+              RESET
+            </span>
+          )}
+        </div>
         <div className="stat-value" style={{ color }}>{value}</div>
         {sub && <div className="stat-sub">{sub}</div>}
       </div>
@@ -49,9 +56,10 @@ export default function App() {
   });
   const [sessionId, setSessionId] = useState('');
   const [now, setNow] = useState(Date.now());
-  
-  // Stan motywu
   const [theme, setTheme] = useState(() => localStorage.getItem('margo_theme') || 'dark');
+  
+  // NOWE: Baza do liczenia zysku
+  const [baseMoney, setBaseMoney] = useState(null);
 
   useEffect(() => {
     document.body.className = theme === 'light' ? 'light-mode' : '';
@@ -86,6 +94,13 @@ export default function App() {
       });
     }
   }, [state?.hero?.name, sessionId]);
+
+  // Ustawienie punktu startowego dla zysku, gdy tylko pojawią się pierwsze dane
+  useEffect(() => {
+    if (baseMoney === null && snapshots.length > 0 && snapshots[0]?.money != null) {
+      setBaseMoney(snapshots[0].money);
+    }
+  }, [snapshots, baseMoney]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -155,12 +170,11 @@ export default function App() {
     }
   };
 
+  // NOWE: Zysk obliczany od baseMoney
   const profit = useMemo(() => {
-    if (!snapshots.length || !state?.hero?.money) return null;
-    const start = snapshots[0]?.money;
-    if (start == null) return null;
-    return state.hero.money - start;
-  }, [snapshots, state]);
+    if (baseMoney === null || state?.hero?.money == null) return null;
+    return state.hero.money - baseMoney;
+  }, [state?.hero?.money, baseMoney]);
 
   const isDead = state?.hero?.hp <= 0 || state?.bot?.status?.includes('NIEPRZYTOMNA') || state?.bot?.status?.includes('ODRADZANIE');
   const isStuck = !isDead && state?.bot?.running && state?.hero?.lastMoveTs && (now - state.hero.lastMoveTs > 60000);
@@ -190,7 +204,6 @@ export default function App() {
         </div>
 
         <div className="top-right">
-          {/* PRZEŁĄCZNIK MOTYWU */}
           <button className="btn btn-outline theme-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title="Zmień motyw">
             {theme === 'dark' ? <IconSun /> : <IconMoon />}
           </button>
@@ -245,7 +258,16 @@ export default function App() {
 
           <div className="stats-grid">
             <StatCard icon={<IconMoney />} label="KAPITAŁ" value={fmt(state.hero.money)} color={theme === 'light' ? '#0284c7' : '#00e5ff'} />
-            <StatCard icon={<IconTrend />} label="ZYSK SESJI" value={profit != null ? (profit >= 0 ? '+' : '') + fmt(profit) : '---'} color={profit >= 0 ? (theme === 'light' ? '#10b981' : '#00ff88') : (theme === 'light' ? '#ef4444' : '#ff3366')} />
+            
+            {/* DODANY PRZYCISK RESET DLA ZYSKU */}
+            <StatCard 
+              icon={<IconTrend />} 
+              label="ZYSK SESJI" 
+              value={profit != null ? (profit >= 0 ? '+' : '') + fmt(profit) : '---'} 
+              color={profit >= 0 ? (theme === 'light' ? '#10b981' : '#00ff88') : (theme === 'light' ? '#ef4444' : '#ff3366')} 
+              onReset={() => setBaseMoney(state.hero.money)}
+            />
+            
             <StatCard icon={<IconMap />} label="LOKALIZACJA" value={state.map || '---'} color={theme === 'light' ? '#8b5cf6' : '#a855f7'} />
             <StatCard icon={<IconTarget />} label="AKTYWNY CEL" value={state.target || '---'} color={theme === 'light' ? '#ef4444' : '#ff3366'} />
           </div>
