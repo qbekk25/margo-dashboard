@@ -1,14 +1,30 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function MapView({ state }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const [size, setSize] = useState(500);
+
+  // Dynamiczne skalowanie mapy do kontenera
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        const width = entry.contentRect.width;
+        // Maksymalny rozmiar mapy to 600px, minimalny to tyle ile się zmieści
+        setSize(Math.min(width, 600));
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!state?.walls || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const cssSize = 540;
+    const cssSize = size;
 
     canvas.width = cssSize * dpr;
     canvas.height = cssSize * dpr;
@@ -143,10 +159,10 @@ export default function MapView({ state }) {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ctx.stroke();
-  }, [state]);
+  }, [state, size]);
 
   return (
-    <div className="map-wrap">
+    <div className="map-wrap" ref={containerRef}>
       <canvas ref={canvasRef} className="map-canvas" />
       <div className="map-legend">
         <span><i className="dot hero" /> Ty</span>
