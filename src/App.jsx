@@ -58,7 +58,6 @@ export default function App() {
   const [now, setNow] = useState(Date.now());
   const [theme, setTheme] = useState(() => localStorage.getItem('margo_theme') || 'dark');
   
-  // NOWE: Baza do liczenia zysku
   const [baseMoney, setBaseMoney] = useState(null);
 
   useEffect(() => {
@@ -95,12 +94,27 @@ export default function App() {
     }
   }, [state?.hero?.name, sessionId]);
 
-  // Ustawienie punktu startowego dla zysku, gdy tylko pojawią się pierwsze dane
+  // Ładowanie baseMoney z localStorage przy zmianie konta
   useEffect(() => {
-    if (baseMoney === null && snapshots.length > 0 && snapshots[0]?.money != null) {
-      setBaseMoney(snapshots[0].money);
+    if (!sessionId) return;
+    const saved = localStorage.getItem(`margo_base_money_${sessionId}`);
+    if (saved) setBaseMoney(parseFloat(saved));
+    else setBaseMoney(null);
+  }, [sessionId]);
+
+  // Zapis baseMoney do localStorage
+  useEffect(() => {
+    if (sessionId && baseMoney !== null) {
+      localStorage.setItem(`margo_base_money_${sessionId}`, baseMoney.toString());
     }
-  }, [snapshots, baseMoney]);
+  }, [baseMoney, sessionId]);
+
+  // Jeśli baseMoney nie jest ustawione, ustaw na obecne saldo (przy pierwszym załadowaniu)
+  useEffect(() => {
+    if (baseMoney === null && state?.hero?.money != null) {
+      setBaseMoney(state.hero.money);
+    }
+  }, [state?.hero?.money, baseMoney]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -170,7 +184,6 @@ export default function App() {
     }
   };
 
-  // NOWE: Zysk obliczany od baseMoney
   const profit = useMemo(() => {
     if (baseMoney === null || state?.hero?.money == null) return null;
     return state.hero.money - baseMoney;
@@ -259,7 +272,6 @@ export default function App() {
           <div className="stats-grid">
             <StatCard icon={<IconMoney />} label="KAPITAŁ" value={fmt(state.hero.money)} color={theme === 'light' ? '#0284c7' : '#00e5ff'} />
             
-            {/* DODANY PRZYCISK RESET DLA ZYSKU */}
             <StatCard 
               icon={<IconTrend />} 
               label="ZYSK SESJI" 
@@ -269,7 +281,7 @@ export default function App() {
             />
             
             <StatCard icon={<IconMap />} label="LOKALIZACJA" value={state.map || '---'} color={theme === 'light' ? '#8b5cf6' : '#a855f7'} />
-            <StatCard icon={<IconTarget />} label="AKTYWNY CEL" value={state.target || '---'} color={theme === 'light' ? '#ef4444' : '#ff3366'} />
+            <StatCard icon={<IconTarget />} label="AKTYWNY CEL" value={state.target || 'Brak celu'} color={theme === 'light' ? '#ef4444' : '#ff3366'} />
           </div>
 
           <section className="card controls-card">
