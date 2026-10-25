@@ -22,12 +22,11 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Czyste ikony SVG zamiast emotek
+// Ikony SVG
 const IconMoney = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>;
 const IconMap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 const IconTarget = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
 const IconTrend = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
-const IconUsers = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
 const IconTerminal = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>;
 
 function StatCard({ icon, label, value, sub, color }) {
@@ -48,6 +47,14 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem(SESSIONS_STORAGE_KEY)) || []; } catch { return []; }
   });
   const [sessionId, setSessionId] = useState('');
+  
+  // Zegar do odświeżania alertów co sekundę
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (sessions.length > 0 && !sessionId) setSessionId(sessions[0].id);
@@ -144,8 +151,10 @@ export default function App() {
     return state.hero.money - start;
   }, [snapshots, state]);
 
-  // Detekcja śmierci
+  // --- SYSTEM ALERTÓW ---
   const isDead = state?.hero?.hp <= 0 || state?.bot?.status?.includes('NIEPRZYTOMNA') || state?.bot?.status?.includes('ODRADZANIE');
+  const isStuck = !isDead && state?.bot?.running && state?.hero?.lastMoveTs && (now - state.hero.lastMoveTs > 60000); // 1 minuta bez ruchu
+  const isLagging = !isDead && state?.bot?.running && state?.ts && (now - state.ts > 130000); // Brak jakiegokolwiek sygnału przez 2m 10s
 
   if (!sessionId || !state) {
     return (
@@ -159,6 +168,8 @@ export default function App() {
       </div>
     );
   }
+
+  const heroName = state.hero.name || '---';
 
   return (
     <div className="app">
@@ -183,9 +194,20 @@ export default function App() {
         </div>
       </header>
 
+      {/* PASEK ALERTÓW */}
       {isDead && (
         <div className="death-alert">
           WYKRYTO ZGON POSTACI // OCZEKIWANIE NA RESPAWN W MIEŚCIE
+        </div>
+      )}
+      {isLagging && (
+        <div className="lag-alert">
+          BRAK POŁĄCZENIA Z KLIENTEM GRY // ZALECANE ODŚWIEŻENIE STRONY (F5)
+        </div>
+      )}
+      {!isLagging && isStuck && (
+        <div className="stuck-alert">
+          WYKRYTO ZABLOKOWANIE POSTACI // POSTAĆ NIE RUSZYŁA SIĘ OD PONAD MINUTĘ
         </div>
       )}
 
@@ -193,9 +215,9 @@ export default function App() {
         <aside className="col-left">
           <section className="card hero-card">
             <div className="hero-header">
-              <div className="hero-avatar-box">{heroNameInitial(state.hero.name)}</div>
+              <div className="hero-avatar-box">{heroName.substring(0, 2).toUpperCase()}</div>
               <div className="hero-info">
-                <div className="hero-name">{state.hero.name || 'NIEZNANY'}</div>
+                <div className="hero-name">{heroName}</div>
                 <div className="hero-meta">
                   <span>LVL <b>{state.hero.lvl ?? '?'}</b></span>
                   <span className={`bless ${state.hero.isBlessed ? 'on' : 'off'}`}>
@@ -284,8 +306,4 @@ export default function App() {
       </div>
     </div>
   );
-}
-
-function heroNameInitial(name) {
-  return name ? name.substring(0, 2).toUpperCase() : '??';
 }
