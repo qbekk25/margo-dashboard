@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { useTelemetry } from './useTelemetry';
@@ -11,10 +11,19 @@ import './styles.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+const SESSION_KEY = 'margo_dashboard_session_id';
+
 export default function App() {
-  const [sessionId, setSessionId] = useState(
-    () => prompt('Podaj sessionId z konsoli gry (np. sess_abc123):') || ''
-  );
+  const [sessionId, setSessionId] = useState(() => {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (saved) return saved;
+    return prompt('Podaj sessionId z konsoli gry (np. sess_abc123):') || '';
+  });
+
+  useEffect(() => {
+    if (sessionId) localStorage.setItem(SESSION_KEY, sessionId);
+  }, [sessionId]);
+
   const { state, snapshots, logs } = useTelemetry(sessionId);
 
   const sendCommand = async (cmd, extra = {}) => {
@@ -37,6 +46,10 @@ export default function App() {
       <div className="app">
         <h1>Margonem Dashboard</h1>
         <p>Oczekiwanie na dane z gry… (sessionId: {sessionId})</p>
+        <button onClick={() => { localStorage.removeItem(SESSION_KEY); location.reload(); }}
+          style={{ background: '#32160f', color: '#fff', border: '1px solid #6e2912', padding: '8px 14px', borderRadius: 6, cursor: 'pointer' }}>
+          Zmień sessionId
+        </button>
       </div>
     );
   }
@@ -45,9 +58,15 @@ export default function App() {
     <div className="app">
       <header className="header">
         <h1>⚔️ Margonem Dashboard</h1>
-        <span className={`pill ${state.bot?.running ? 'on' : 'off'}`}>
-          {state.bot?.running ? 'BOT AKTYWNY' : 'BOT ZATRZYMANY'}
-        </span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={() => { localStorage.removeItem(SESSION_KEY); location.reload(); }}
+            style={{ background: 'transparent', color: '#888', border: '1px solid #444', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>
+            Zmień sesję
+          </button>
+          <span className={`pill ${state.bot?.running ? 'on' : 'off'}`}>
+            {state.bot?.running ? 'BOT AKTYWNY' : 'BOT ZATRZYMANY'}
+          </span>
+        </div>
       </header>
 
       <div className="grid">
